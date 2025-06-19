@@ -16,11 +16,6 @@ import {
   Hash // For Employee Number
 } from 'lucide-react';
 
-// Ensure Firebase config and app ID are available from the environment
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
 // Helper function for custom modal/message box
 const showMessage = (setter, message, type = 'success') => {
   setter({ message, type });
@@ -59,6 +54,20 @@ const App = () => {
   // Initialize Firebase and Auth
   useEffect(() => {
     try {
+      // Ensure Firebase config and app ID are available from the environment
+      // These are global variables provided by the Canvas environment.
+      const currentAppId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+      const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+      const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+      // Check if Firebase config is valid before initializing
+      if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
+        console.error('Firebase configuration is missing or invalid.');
+        setLoadingFirebase(false);
+        showMessage(setMessage, 'Firebase configuration missing. Cannot initialize application.', 'error');
+        return;
+      }
+
       const app = initializeApp(firebaseConfig);
       const firestoreDb = getFirestore(app);
       const firebaseAuth = getAuth(app);
@@ -71,7 +80,7 @@ const App = () => {
           setUserId(user.uid);
           setIsAuthReady(true);
         } else {
-          // If no user, try to sign in anonymously or with custom token
+          // If no user, try to sign in anonymously or with custom token (from Canvas)
           try {
             if (initialAuthToken) {
               await signInWithCustomToken(firebaseAuth, initialAuthToken);
@@ -93,14 +102,17 @@ const App = () => {
       setLoadingFirebase(false);
       showMessage(setMessage, 'Failed to initialize application. Check console for details.', 'error');
     }
-  }, []);
+  }, []); // Empty dependency array means this runs once on mount
 
   // Fetch employees when Firebase is ready and user ID is available
   useEffect(() => {
     if (db && userId && isAuthReady) {
       setLoadingEmployees(true);
-      // Construct the collection path based on userId
-      const employeesCollectionPath = `/artifacts/${appId}/users/${userId}/employees`;
+      // Determine the app ID based on the global variable from Canvas
+      const currentAppId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+      // Construct the collection path based on userId and currentAppId
+      const employeesCollectionPath = `/artifacts/${currentAppId}/users/${userId}/employees`;
       const employeesCollectionRef = collection(db, employeesCollectionPath);
 
       // Listen for real-time updates
@@ -121,7 +133,7 @@ const App = () => {
 
       return () => unsubscribe();
     }
-  }, [db, userId, isAuthReady, appId]); // Depend on db, userId, and isAuthReady
+  }, [db, userId, isAuthReady]); // Depend on db, userId, and isAuthReady
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -138,7 +150,8 @@ const App = () => {
 
     setFormSubmitting(true);
     try {
-      const employeesCollectionPath = `/artifacts/${appId}/users/${userId}/employees`;
+      const currentAppId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+      const employeesCollectionPath = `/artifacts/${currentAppId}/users/${userId}/employees`;
       const newEmployeeNumber = generateEmployeeNumber(); // Generate employee number
 
       await addDoc(collection(db, employeesCollectionPath), {
@@ -176,7 +189,8 @@ const App = () => {
     if (!confirmDelete) return;
 
     try {
-      const employeesCollectionPath = `/artifacts/${appId}/users/${userId}/employees`;
+      const currentAppId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+      const employeesCollectionPath = `/artifacts/${currentAppId}/users/${userId}/employees`;
       await deleteDoc(doc(db, employeesCollectionPath, employeeId));
       showMessage(setMessage, 'Employee deleted successfully!', 'success');
     } catch (error) {
