@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: employee-registration
+    env: python
+    buildCommand: ""
+    startCommand: "python server.py"
+    autoDeploy: true
