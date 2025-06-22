@@ -1,7 +1,7 @@
 New Employee Registration System
 This project is a full-stack application designed for registering new employees. It features a reactive frontend built with React and a functional backend API built with Python and Flask.
 
-Project by: [Your Name Here]
+Project by: New Employee Registration System.
 
 Overview
 The application provides a user-friendly interface for HR personnel or administrators to input new employee details. The key feature is the automatic generation of a unique Employee Number based on the employee's surname and their government-issued ID number, streamlining the onboarding process.
